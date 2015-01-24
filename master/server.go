@@ -1,6 +1,7 @@
 package main
 
 import (
+  "fmt"
 	"log"
 	"net"
 	"sync"
@@ -16,13 +17,6 @@ type Connection struct {
 	tcpConn *net.TCPConn
 }
 
-func NewConnection(s *Server, c *net.TCPConn) *Connection {
-	s.ConnMutex.Lock()
-	s.Connections += 1
-	s.ConnMutex.Unlock()
-	return &Connection{server: s, tcpConn: c}
-}
-
 func (c *Connection) Handle() {
 
 }
@@ -31,8 +25,7 @@ type Server struct {
 	workerListener *net.TCPListener
 	clientListener *net.TCPListener
 	ConnMutex      sync.Mutex
-	Connections    int
-	ConnectionPool map[string]*Connection
+	Connections    []*Connection
 }
 
 func New(addr1 string, addr2 string) *Server {
@@ -40,8 +33,7 @@ func New(addr1 string, addr2 string) *Server {
 	return &Server{
     workerListener: NewListener(addr1),
     clientListener: NewListener(addr2),
-		Connections:    0,
-		ConnectionPool: make(map[string]*Connection)}
+		Connections: make([]*Connection, 0)}
 }
 
 func NewListener(addr string) *net.TCPListener {
@@ -62,7 +54,7 @@ func (s *Server) Close() {
 func (s *Server) HandleWorkers(quit chan bool) {
 	for {
 		c, err := s.workerListener.AcceptTCP()
-		if s.Connections >= maxConns {
+		if len(s.Connections) >= maxConns {
 			c.Close()
 			continue
 		}
@@ -71,12 +63,31 @@ func (s *Server) HandleWorkers(quit chan bool) {
 			log.Fatal(err)
 		}
 
-		NewConnection(s, c)
+    s.ConnMutex.Lock()
+    s.Connections = append(s.Connections, &Connection{server: s, tcpConn: c})
+    s.ConnMutex.Unlock()
 	}
 
   quit <- true
 }
 
-func (s *Server) HandleClients(quit chan bool) {
+func (s *Server) HandleRequest(conn *net.TCPConn) {
+  for _, worker := range s.Connections {
+    fmt.Fprintf(worker.tcpConn, "ALIVE\n")
+  }
 
+  conn.Close()
+}
+
+func (s *Server) HandleClients(quit chan bool) {
+  for {
+    c, err := s.clientListener.AcceptTCP()
+    if err != nil {
+      log.Fatal(err)
+    }
+
+    go s.HandleRequest(c);
+  }
+
+  quit <- true
 }

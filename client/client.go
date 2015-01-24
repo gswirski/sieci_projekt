@@ -1,7 +1,16 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"log"
+	"net"
+)
 
 func main() {
-  fmt.Println("Hello my client")
+	conn, err := net.Dial("tcp", ":2001")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+  fmt.Fprintf(conn, "Hello\n")
 }
