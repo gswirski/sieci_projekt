@@ -90,13 +90,12 @@ func (s *Server) HandleRequest(conn *net.TCPConn) {
 				fmt.Fprintf(worker.tcpConn, r)
 			}
 
-			worker.busy = true
-			return
+			worker.busy = false
+			break
 		}
 	}
 
 	fmt.Fprintf(conn, "ERROR RESOURCE BUSY\n")
-	conn.Close()
 }
 
 func (s *Server) HandleClients(quit chan bool) {

@@ -39,6 +39,8 @@ func main() {
 
 	reader := bufio.NewReader(conn)
 	for {
+		log.Printf("iterate\n")
+
 		l, err := reader.ReadString('\n')
 		if err != nil {
 			log.Fatal(err)
