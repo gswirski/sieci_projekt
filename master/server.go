@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"sync"
 	"time"
 )
@@ -14,9 +15,10 @@ const rate time.Duration = 1000 * time.Nanosecond
 const maxConns int = 10
 
 type Connection struct {
-	server    *Server
-	tcpConn   *net.TCPConn
-	busy      bool
+	server  *Server
+	tcpConn *net.TCPConn
+	busy    bool
+	reader  *bufio.Reader
 }
 
 func (c *Connection) Handle() {
@@ -66,7 +68,7 @@ func (s *Server) HandleWorkers(quit chan bool) {
 
 		s.ConnMutex.Lock()
 		s.Connections = append(s.Connections,
-			&Connection{server: s, tcpConn: c, busy: false})
+			&Connection{server: s, tcpConn: c, busy: false, reader: bufio.NewReader(c)})
 		s.ConnMutex.Unlock()
 	}
 
@@ -74,25 +76,37 @@ func (s *Server) HandleWorkers(quit chan bool) {
 }
 
 func (s *Server) HandleRequest(conn *net.TCPConn) {
+	var mutex sync.Mutex
+	handled := false
+
 	for _, worker := range s.Connections {
-		if !worker.busy {
-			worker.busy = true
-
-			reader := bufio.NewReader(conn)
-			for {
-				r, err := reader.ReadString('\n')
-				if err != nil {
-					log.Printf("error: %s\n", err)
-					break
-				}
-				log.Printf("passing %s", r)
-
-				fmt.Fprintf(worker.tcpConn, r)
+		fmt.Fprintf(worker.tcpConn, "AVAILABLE\n")
+		go func(tcp net.Conn, reader *bufio.Reader) {
+			log.Printf("worker PRE check %p\n", reader)
+			l, err := reader.ReadString('\n')
+			log.Printf("worker POST check\n")
+			if err != nil {
+				log.Print("[ERR] ", err)
+				return
 			}
 
-			worker.busy = false
-			break
-		}
+			cmd := strings.Fields(l)
+			if cmd[0] == "READY" {
+				log.Printf("[read] READY\n")
+				mutex.Lock()
+				if !handled {
+					handled = true
+					mutex.Unlock()
+					fmt.Fprintf(tcp, "UPLOAD dupa\n")
+					log.Printf("[sent] UPLOAD dupa\n")
+				} else {
+					mutex.Unlock()
+					fmt.Fprintf(tcp, "ROLLBACK\n")
+					log.Printf("[sent] ROLLBACK\n")
+				}
+			}
+
+		}(worker.tcpConn, worker.reader)
 	}
 
 	fmt.Fprintf(conn, "ERROR RESOURCE BUSY\n")
