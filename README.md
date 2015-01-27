@@ -14,7 +14,7 @@ cd $GOPATH/src/sieci
 Usage
 ---------------
 
-* `$GOPATH/bin/master` starts master process
+* `$GOPATH/bin/master :2000 :2001` starts master process
 * `$GOPATH/bin/worker` starts worker process and connects to master
 * `$GOPATH/bin/client` starts client process and connects to master
 
