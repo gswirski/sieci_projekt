@@ -47,15 +47,12 @@ func (c *Connection) Write(cmd string) {
 func HandleCommand(conn *Connection) {
 	cmd := conn.Read()
 	if cmd[0] == "ROLLBACK" {
-		log.Printf("rollback\n")
+		log.Printf("ROLLBACK\n")
 		return
 	}
 
-	log.Printf("start reading...")
-	log.Printf(" sleep...")
+	log.Printf("EXECUTE COMMAND\n")
 	time.Sleep(5 * time.Second)
-	log.Printf(" wake up\n")
-
 }
 
 func HandleMaster(worker *Worker, conn *Connection) {
