@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net"
@@ -13,8 +14,9 @@ const rate time.Duration = 1000 * time.Nanosecond
 const maxConns int = 10
 
 type Connection struct {
-	server  *Server
-	tcpConn *net.TCPConn
+	server    *Server
+	tcpConn   *net.TCPConn
+	busy      bool
 }
 
 func (c *Connection) Handle() {
@@ -29,7 +31,6 @@ type Server struct {
 }
 
 func New(addr1 string, addr2 string) *Server {
-
 	return &Server{
 		workerListener: NewListener(addr1),
 		clientListener: NewListener(addr2),
@@ -64,7 +65,8 @@ func (s *Server) HandleWorkers(quit chan bool) {
 		}
 
 		s.ConnMutex.Lock()
-		s.Connections = append(s.Connections, &Connection{server: s, tcpConn: c})
+		s.Connections = append(s.Connections,
+			&Connection{server: s, tcpConn: c, busy: false})
 		s.ConnMutex.Unlock()
 	}
 
@@ -73,9 +75,27 @@ func (s *Server) HandleWorkers(quit chan bool) {
 
 func (s *Server) HandleRequest(conn *net.TCPConn) {
 	for _, worker := range s.Connections {
-		fmt.Fprintf(worker.tcpConn, "ALIVE\n")
+		if !worker.busy {
+			worker.busy = true
+
+			reader := bufio.NewReader(conn)
+			for {
+				r, err := reader.ReadString('\n')
+				if err != nil {
+					log.Printf("error: %s\n", err)
+					break
+				}
+				log.Printf("passing %s", r)
+
+				fmt.Fprintf(worker.tcpConn, r)
+			}
+
+			worker.busy = true
+			return
+		}
 	}
 
+	fmt.Fprintf(conn, "ERROR RESOURCE BUSY\n")
 	conn.Close()
 }
 

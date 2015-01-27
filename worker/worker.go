@@ -5,21 +5,30 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"io"
 	"log"
 	"net"
 	"strings"
 )
 
-func readUntil(conn io.Reader, endseq string) string {
+func readUntil(reader *bufio.Reader, endseq string) string {
 	var result bytes.Buffer
 
-	for line, err := bufio.NewReader(conn).ReadString('\n'); line != endseq; {
+	log.Printf("chuj\n")
+
+	line, err := reader.ReadString('\n')
+
+	log.Printf("[read] %s, %s\n", line, endseq)
+
+	for line != endseq {
+		log.Printf("[read] %s", line)
+
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		result.WriteString(line)
+
+		line, err = reader.ReadString('\n')
 	}
 
 	return result.String()
@@ -31,24 +40,27 @@ func main() {
 		log.Fatal(err)
 	}
 
+	reader := bufio.NewReader(conn)
 	for {
-		cmd, err := bufio.NewReader(conn).ReadString('\n')
+		l, err := reader.ReadString('\n')
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		log.Printf("[received] %s", cmd)
+		log.Printf("[received] %s", l)
+
+		cmd := strings.Fields(l)
+		log.Printf("fields: %q\n", cmd)
 
 		var response string
 
-		if cmd == "AVAILABLE\n" {
+		if cmd[0] == "AVAILABLE" {
 			response = "OK\n"
-		} else if cmd == "ENDSEQ" {
-			seq := strings.Split(cmd, " ")[1]
-			code := readUntil(conn, seq)
+		} else if cmd[0] == "ENDSEQ" {
+			code := readUntil(reader, cmd[1])
 			response = "OK\n"
 			log.Printf("[loaded] %s", code)
-		} else if cmd == "SHUTDOWN\n" {
+		} else if cmd[0] == "SHUTDOWN" {
 			response = "SHUTTING DOWN\n"
 		} else {
 			response = "ERROR\n"
