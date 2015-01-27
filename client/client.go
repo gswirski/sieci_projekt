@@ -21,11 +21,11 @@ func main() {
 		log.Fatal(err)
 	}
 	defer file.Close()
-	fmt.Fprintf(conn, "ENDSEQ OFFILESEQYOULLNEVERUSEITINYOURCODE\n")
+	fmt.Fprintf(conn, "OFFILESEQYOULLNEVERUSEITINYOURCODE\n")
 	_, err = io.Copy(conn, file)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Fprintf(conn, "ENDSEQ OFFILESEQYOULLNEVERUSEITINYOURCODE\n")
+	fmt.Fprintf(conn, "OFFILESEQYOULLNEVERUSEITINYOURCODE\n")
 	conn.Close()
 }
