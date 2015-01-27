@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"log"
 	"net"
 )
 
 func main() {
-	conn, err := net.Dial("tcp", ":2001")
+	conn, err := net.Dial("tcp", os.Args[1])
 	if err != nil {
 		log.Fatal(err)
 	}

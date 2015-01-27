@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"os"
 	"io"
 	"log"
 	"net"
@@ -25,7 +26,7 @@ func readUntil(conn io.Reader, endseq string) string {
 }
 
 func main() {
-	conn, err := net.Dial("tcp", ":2000")
+	conn, err := net.Dial("tcp", os.Args[1])
 	if err != nil {
 		log.Fatal(err)
 	}
