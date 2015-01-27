@@ -13,17 +13,14 @@ import (
 func readUntil(reader *bufio.Reader, endseq string) string {
 	var result bytes.Buffer
 
-	log.Printf("chuj\n")
-
 	line, err := reader.ReadString('\n')
 
-	log.Printf("[read] %s, %s\n", line, endseq)
-
-	for line != endseq {
-		log.Printf("[read] %s", line)
+	for strings.TrimSpace(line) != strings.TrimSpace(endseq) {
+		log.Printf("[read] %s, %s", line, endseq)
 
 		if err != nil {
 			log.Fatal(err)
+			break
 		}
 
 		result.WriteString(line)

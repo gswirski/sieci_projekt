@@ -26,6 +26,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Fprintf(conn, "ENDSEQ OFFILESEQYOULLNEVERUSEITINYOURCODE\n")
+	fmt.Fprintf(conn, "OFFILESEQYOULLNEVERUSEITINYOURCODE\n")
 	conn.Close()
 }
