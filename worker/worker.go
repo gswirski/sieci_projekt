@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"log"
 	"net"
 	"os"
 	"sieci/util"
+	"strings"
 	"time"
 )
 
@@ -15,8 +17,16 @@ func HandleCommand(conn *util.Connection) {
 		return
 	}
 
-	log.Printf("EXECUTE COMMAND\n")
-	time.Sleep(5 * time.Second)
+	var result bytes.Buffer
+	endseq := cmd[1]
+	line := conn.ReadLine()
+	for strings.TrimSpace(line) != strings.TrimSpace(endseq) {
+		result.WriteString(line)
+		line = conn.ReadLine()
+	}
+
+	log.Printf(result.String())
+	time.Sleep(1 * time.Second)
 }
 
 func HandleMaster(worker *util.Worker, conn *util.Connection) {
@@ -27,6 +37,7 @@ func HandleMaster(worker *util.Worker, conn *util.Connection) {
 		conn.Write("READY")
 		HandleCommand(conn)
 
+		log.Printf("unlock\n")
 		worker.Unlock()
 	}
 }

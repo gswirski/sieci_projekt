@@ -30,18 +30,24 @@ func NewConnection(conn net.Conn) *Connection {
 	return &Connection{Conn: conn, Reader: bufio.NewReader(conn)}
 }
 
-func (c *Connection) Read() []string {
+func (c *Connection) ReadLine() string {
 	l, err := c.Reader.ReadString('\n')
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("[read] %s", l)
+	return l
+}
 
-	cmd := strings.Fields(l)
-	log.Printf("[read] %s", cmd)
-	return cmd
+func (c *Connection) Read() []string {
+	return strings.Fields(c.ReadLine())
+}
+
+func (c *Connection) WriteLine(cmd string) {
+	log.Printf("[sent] %s", cmd)
+	fmt.Fprintf(c.Conn, "%s", cmd)
 }
 
 func (c *Connection) Write(cmd string) {
-	log.Printf("[sent] %s\n", cmd)
-	fmt.Fprintf(c.Conn, "%s\n", cmd)
+	c.WriteLine(fmt.Sprintf("%s\n", cmd))
 }

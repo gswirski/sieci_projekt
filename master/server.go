@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"sieci/util"
+	"strings"
 	"sync"
 )
 
@@ -69,7 +70,7 @@ func (s *Server) HandleRequest(conn *util.Connection) {
 				if !handled {
 					handled = true
 					mutex.Unlock()
-					worker.Write("UPLOAD dupa")
+					HandleUpload(conn, worker)
 				} else {
 					mutex.Unlock()
 					worker.Write("ROLLBACK")
@@ -77,4 +78,21 @@ func (s *Server) HandleRequest(conn *util.Connection) {
 			}
 		}(worker)
 	}
+}
+
+func HandleUpload(conn *util.Connection, worker *util.Connection) {
+	line := conn.ReadLine()
+	cmd := strings.Fields(line)
+	if cmd[0] != "ENDSEQ" {
+		log.Printf("FAIL\n")
+		return
+	}
+	endseq := cmd[1]
+	worker.WriteLine(line)
+	line = conn.ReadLine()
+	for strings.TrimSpace(line) != strings.TrimSpace(endseq) {
+		worker.WriteLine(line)
+		line = conn.ReadLine()
+	}
+	worker.WriteLine(line)
 }
