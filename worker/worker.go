@@ -1,50 +1,14 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
 	"log"
 	"net"
 	"os"
-	"strings"
-	"sync"
+	"sieci/util"
 	"time"
 )
 
-type Worker struct {
-	mutex sync.Mutex
-}
-
-type Connection struct {
-	reader *bufio.Reader
-	conn   net.Conn
-}
-
-func (w *Worker) Lock() {
-	w.mutex.Lock()
-}
-
-func (w *Worker) Unlock() {
-	w.mutex.Unlock()
-}
-
-func (c *Connection) Read() []string {
-	l, err := c.reader.ReadString('\n')
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	cmd := strings.Fields(l)
-	log.Printf("[read] %s", cmd)
-	return cmd
-}
-
-func (c *Connection) Write(cmd string) {
-	log.Printf("[sent] %s\n", cmd)
-	fmt.Fprintf(c.conn, "%s\n", cmd)
-}
-
-func HandleCommand(conn *Connection) {
+func HandleCommand(conn *util.Connection) {
 	cmd := conn.Read()
 	if cmd[0] == "ROLLBACK" {
 		log.Printf("ROLLBACK\n")
@@ -55,7 +19,7 @@ func HandleCommand(conn *Connection) {
 	time.Sleep(5 * time.Second)
 }
 
-func HandleMaster(worker *Worker, conn *Connection) {
+func HandleMaster(worker *util.Worker, conn *util.Connection) {
 	for {
 		_ = conn.Read()
 		worker.Lock()
@@ -68,7 +32,7 @@ func HandleMaster(worker *Worker, conn *Connection) {
 }
 
 func main() {
-	worker := Worker{}
+	worker := util.Worker{}
 	addrs := os.Args[1:]
 
 	for _, addr := range addrs {
@@ -77,7 +41,7 @@ func main() {
 			log.Fatal("w1", err)
 		}
 
-		go HandleMaster(&worker, &Connection{conn: c, reader: bufio.NewReader(c)})
+		go HandleMaster(&worker, util.NewConnection(c))
 	}
 
 	quit := make(chan bool)
