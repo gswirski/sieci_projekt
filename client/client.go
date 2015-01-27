@@ -21,7 +21,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer file.Close()
-	fmt.Fprintf(conn, "OFFILESEQYOULLNEVERUSEITINYOURCODE\n")
+	fmt.Fprintf(conn, "ENDSEQ OFFILESEQYOULLNEVERUSEITINYOURCODE\n")
 	_, err = io.Copy(conn, file)
 	if err != nil {
 		log.Fatal(err)
