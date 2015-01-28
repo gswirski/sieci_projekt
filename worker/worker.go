@@ -11,7 +11,10 @@ import (
 )
 
 func HandleCommand(conn *util.Connection) {
-	cmd := conn.Read()
+	cmd, err := conn.Read()
+	if err != nil {
+		return
+	}
 	if cmd[0] == "ROLLBACK" {
 		log.Printf("ROLLBACK\n")
 		return
@@ -19,10 +22,16 @@ func HandleCommand(conn *util.Connection) {
 
 	var result bytes.Buffer
 	endseq := cmd[1]
-	line := conn.ReadLine()
+	line, err := conn.ReadLine()
+	if err != nil {
+		return
+	}
 	for strings.TrimSpace(line) != strings.TrimSpace(endseq) {
 		result.WriteString(line)
-		line = conn.ReadLine()
+		line, err = conn.ReadLine()
+		if err != nil {
+			return
+		}
 	}
 
 	conn.Write("RECEIVED")
@@ -37,7 +46,10 @@ func HandleCommand(conn *util.Connection) {
 
 func HandleMaster(worker *util.Worker, conn *util.Connection) {
 	for {
-		_ = conn.Read()
+		_, err := conn.Read()
+		if err != nil {
+			return
+		}
 		worker.Lock()
 
 		conn.Write("READY")

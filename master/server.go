@@ -66,32 +66,53 @@ func (s *Server) HandleRequest(conn *util.Connection) {
 
 		worker.Write("AVAILABLE")
 		go func(worker *util.Connection) {
-			cmd := worker.Read()
+			cmd, err := worker.Read()
+			if err != nil {
+				delete(s.Connections, worker)
+				return
+			}
 
 			if cmd[0] == "READY" {
 				mutex.Lock()
 				if !handled {
 					handled = true
+					s.Connections[worker] = true // busy
 					mutex.Unlock()
-					HandleUpload(conn, worker)
+					err := HandleUpload(conn, worker)
+					if err != nil {
+						delete(s.Connections, worker)
+						return
+					}
 				} else {
 					mutex.Unlock()
 					worker.Write("ROLLBACK")
 				}
+				s.Connections[worker] = false // free
 			}
 		}(worker)
 	}
 }
 
-func HandleUpload(conn *util.Connection, worker *util.Connection) {
-	util.CopyData(conn, worker)
+func HandleUpload(conn *util.Connection, worker *util.Connection) error {
+	err := util.CopyData(conn, worker)
+	if err != nil {
+		return nil
+	}
 
-	cmd := worker.Read()
+	cmd, err := worker.Read()
+	if err != nil {
+		return err
+	}
 	if cmd[0] != "RECEIVED" {
 		conn.Write("ERROR")
-		return
+		return nil
 	}
 
 	conn.Write("RECEIVED")
-	util.CopyData(worker, conn)
+	err = util.CopyData(worker, conn)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
