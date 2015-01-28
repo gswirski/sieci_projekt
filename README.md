@@ -37,7 +37,7 @@ Projekt uses two very simple protocols. One to manage workload between master an
 
 ### Data exchange protocol
 
-After TCP connection is initialized, uploading side sends (there must be a newline after _terminator_)
+After TCP connection is initialized, uploading side sends the following message (there must be a newline after _terminator_)
 
 ```
 ENDSEQ terminator
@@ -45,7 +45,7 @@ code
 terminator
 ```
 
-After code is received, server sends `RECEIVED` or `ERROR` message and, when results are available, begins another transfer with the same syntax:
+After the _code_ is received, server responds with `RECEIVED` or `ERROR` message and, when results are available, begins another transfer with the same syntax:
 
 ```
 ENDSEQ terminator
@@ -56,6 +56,8 @@ terminator
 Server does not wait for clients to acknowledge success.
 
 ### Worker orchestration
+
+When master process opens a connection with client process, it tries to find available worker. It does so by sending `AVAILABLE` message to every worker that is not executing a job known to this master (it is expected that master does not query workers that execute its own jobs at the time). When a worker is available, it responds with `READY` message and locks on that master. Master selects one of the workers and initializes a transfer using data exchange protocol. The rest of the workers receive `ROLLBACK` message to unblock them.
 
 Implementation
 --------------
