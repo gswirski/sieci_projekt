@@ -30,6 +30,36 @@ Worker proceses execute received code and return its result. A single worker can
 ### Client process
 Client processes send code to execute on cluster. They connect with master, wait for a response and die. To start a client process, run `$GOPATH/bin/client master_address file_with_code.py`. Example: `$GOPATH/bin/client 2001 code.py`.
 
+Protocols
+---------
+
+Projekt uses two very simple protocols. One to manage workload between master and workers, the other to send data over client-master and master-worker connections.
+
+### Data exchange protocol
+
+After TCP connection is initialized, uploading side sends (there must be a newline after _terminator_)
+
+```
+ENDSEQ terminator
+code
+terminator
+```
+
+After code is received, server sends `RECEIVED` or `ERROR` message and, when results are available, begins another transfer with the same syntax:
+
+```
+ENDSEQ terminator
+results
+terminator
+```
+
+Server does not wait for clients to acknowledge success.
+
+### Worker orchestration
+
+Implementation
+--------------
+
 Authors
 -------
 
