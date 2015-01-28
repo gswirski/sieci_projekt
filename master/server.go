@@ -64,6 +64,7 @@ func (s *Server) HandleRequest(conn *util.Connection) {
 			continue
 		}
 
+		s.Connections[worker] = true
 		worker.Write("AVAILABLE")
 		go func(worker *util.Connection) {
 			cmd, err := worker.Read()
@@ -76,7 +77,6 @@ func (s *Server) HandleRequest(conn *util.Connection) {
 				mutex.Lock()
 				if !handled {
 					handled = true
-					s.Connections[worker] = true // busy
 					mutex.Unlock()
 					err := HandleUpload(conn, worker)
 					if err != nil {

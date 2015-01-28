@@ -10,27 +10,27 @@ import (
 	"time"
 )
 
-func HandleCommand(conn *util.Connection) {
+func HandleCommand(conn *util.Connection) error {
 	cmd, err := conn.Read()
 	if err != nil {
-		return
+		return err
 	}
 	if cmd[0] == "ROLLBACK" {
 		log.Printf("ROLLBACK\n")
-		return
+		return nil
 	}
 
 	var result bytes.Buffer
 	endseq := cmd[1]
 	line, err := conn.ReadLine()
 	if err != nil {
-		return
+		return err
 	}
 	for strings.TrimSpace(line) != strings.TrimSpace(endseq) {
 		result.WriteString(line)
 		line, err = conn.ReadLine()
 		if err != nil {
-			return
+			return err
 		}
 	}
 
@@ -42,27 +42,38 @@ func HandleCommand(conn *util.Connection) {
 	conn.Write("ENDSEQ dupa")
 	conn.Write("result")
 	conn.Write("dupa")
+
+	return nil
 }
 
-func HandleMaster(worker *util.Worker, conn *util.Connection) {
+func HandleMaster(worker *util.Worker, conn *util.Connection, quit chan bool) {
 	for {
 		_, err := conn.Read()
 		if err != nil {
+			quit <- true
 			return
 		}
 		worker.Lock()
 
 		conn.Write("READY")
-		HandleCommand(conn)
+		err = HandleCommand(conn)
+		if err != nil {
+			quit <- true
+			return
+		}
 
 		log.Printf("unlock\n")
 		worker.Unlock()
 	}
+
+	quit <- true
 }
 
 func main() {
 	worker := util.Worker{}
 	addrs := os.Args[1:]
+
+	quit := make(chan bool)
 
 	for _, addr := range addrs {
 		c, err := net.Dial("tcp", addr)
@@ -70,9 +81,10 @@ func main() {
 			log.Fatal("w1", err)
 		}
 
-		go HandleMaster(&worker, util.NewConnection(c))
+		go HandleMaster(&worker, util.NewConnection(c), quit)
 	}
 
-	quit := make(chan bool)
-	<-quit
+	for _, _ = range addrs {
+		<-quit
+	}
 }
