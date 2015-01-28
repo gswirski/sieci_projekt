@@ -62,6 +62,8 @@ When master process opens a connection with client process, it tries to find ava
 Implementation
 --------------
 
+Projekt uses  text-based protocols over TCP connections. We handle many-to-many relations by protecting critical regions by mutexes.
+
 Authors
 -------
 
