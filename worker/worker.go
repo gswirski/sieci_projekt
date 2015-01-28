@@ -25,8 +25,14 @@ func HandleCommand(conn *util.Connection) {
 		line = conn.ReadLine()
 	}
 
+	conn.Write("RECEIVED")
 	log.Printf(result.String())
+
 	time.Sleep(1 * time.Second)
+
+	conn.Write("ENDSEQ dupa")
+	conn.Write("result")
+	conn.Write("dupa")
 }
 
 func HandleMaster(worker *util.Worker, conn *util.Connection) {

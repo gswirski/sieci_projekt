@@ -51,3 +51,20 @@ func (c *Connection) WriteLine(cmd string) {
 func (c *Connection) Write(cmd string) {
 	c.WriteLine(fmt.Sprintf("%s\n", cmd))
 }
+
+func CopyData(src *Connection, dst *Connection) {
+	line := src.ReadLine()
+	cmd := strings.Fields(line)
+	if cmd[0] != "ENDSEQ" {
+		log.Printf("fail\n")
+		return
+	}
+	endseq := cmd[1]
+	dst.WriteLine(line)
+	line = src.ReadLine()
+	for strings.TrimSpace(line) != strings.TrimSpace(endseq) {
+		dst.WriteLine(line)
+		line = src.ReadLine()
+	}
+	dst.WriteLine(line)
+}
