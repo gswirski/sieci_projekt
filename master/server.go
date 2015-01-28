@@ -10,14 +10,14 @@ import (
 type Server struct {
 	workerListener *net.TCPListener
 	clientListener *net.TCPListener
-	Connections    []*util.Connection
+	Connections    map[*util.Connection]bool
 }
 
 func New(addr1 string, addr2 string) *Server {
 	return &Server{
 		workerListener: NewListener(addr1),
 		clientListener: NewListener(addr2),
-		Connections:    make([]*util.Connection, 0)}
+		Connections:    make(map[*util.Connection]bool)}
 }
 
 func NewListener(addr string) *net.TCPListener {
@@ -39,7 +39,7 @@ func (s *Server) HandleWorkers(quit chan bool) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		s.Connections = append(s.Connections, util.NewConnection(c))
+		s.Connections[util.NewConnection(c)] = false
 	}
 	quit <- true
 }
@@ -59,7 +59,11 @@ func (s *Server) HandleRequest(conn *util.Connection) {
 	var mutex sync.Mutex
 	handled := false
 
-	for _, worker := range s.Connections {
+	for worker, busy := range s.Connections {
+		if busy {
+			continue
+		}
+
 		worker.Write("AVAILABLE")
 		go func(worker *util.Connection) {
 			cmd := worker.Read()

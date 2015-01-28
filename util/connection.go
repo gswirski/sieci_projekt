@@ -33,7 +33,7 @@ func NewConnection(conn net.Conn) *Connection {
 func (c *Connection) ReadLine() string {
 	l, err := c.Reader.ReadString('\n')
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
 	}
 	log.Printf("[read] %s", l)
 	return l
